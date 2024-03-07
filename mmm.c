@@ -10,14 +10,30 @@
  * the input matrices with random numbers from 0 to 99
  */
 void mmm_init() {
-	// TODO
-	// A = (double **) malloc(size * sizeof(double*));
-	// allocate the rest of the matrices
+	// seed the random number generator
+	srand((unsigned)time(NULL));
 
-	// TODO
-	srand((unsigned)time(NULL));	// seed the random number generator
- 	// initialize A and B with random values between 0 and 99
+	// Allocate first dimension of the arrays
+	A = (double **) malloc(size * sizeof(double*));
+	B = (double **) malloc(size * sizeof(double*));
+	SEQ_MATRIX = (double **) malloc(size * sizeof(double*));
+	PAR_MATRIX = (double **) malloc(size * sizeof(double*));
+
+	// initialize A and B with random values between 0 and 99
 	// initialize SEQ_MATRIX and PAR_MATRIX with 0s
+	for(int i = 0; i < size; i++){
+		A[i] = (double *) malloc(sizeof(double)*size);
+		B[i] = (double *) malloc(sizeof(double)*size);
+		SEQ_MATRIX[i] = (double *) malloc(sizeof(double)*size);
+		PAR_MATRIX[i] = (double *) malloc(sizeof(double)*size);
+		
+		for(int j = 0; j < size; j++){
+			A[i][j] = rand() % 100;
+			B[i][j] = rand() % 100;
+			SEQ_MATRIX[i][j] = 0;
+			PAR_MATRIX[i][j] = 0;
+		}
+	}
 
 }
 
@@ -26,7 +42,11 @@ void mmm_init() {
  * @param matrix pointer to a 2D array
  */
 void mmm_reset(double **matrix) {
-	// TODO
+	for(int i = 0; i < size; i++){
+		for(int j = 0; j < size; j++){
+			matrix[i][j] = 0;
+		}
+	}
 }
 
 /**
@@ -34,21 +54,68 @@ void mmm_reset(double **matrix) {
  * (their size is in the global var)
  */
 void mmm_freeup() {
-	// TODO
+	for(int i = 0; i < size; i++){
+		free(A[i]);
+		free(B[i]);
+		free(SEQ_MATRIX[i]);
+		free(PAR_MATRIX[i]);
+
+		A[i] = NULL;
+		B[i] = NULL;
+		SEQ_MATRIX[i] = NULL;
+		PAR_MATRIX[i] = NULL;
+
+	}
+	free(A);
+	free(B);
+	free(SEQ_MATRIX);
+	free(PAR_MATRIX);
+
+	A = NULL;
+	B = NULL;
+	SEQ_MATRIX = NULL;
+	PAR_MATRIX = NULL;
 }
 
 /**
  * Sequential MMM (size is in the global var)
  */
 void mmm_seq() {
-	// TODO - code to perform sequential MMM
+	// code to perform sequential MMM
+	for(int i = 0; i < size; i++){
+		for(int j = 0; j < size; j++){
+			for (int k = 0; k < size; k++){
+				SEQ_MATRIX[i][j] += A[i][k] * B[k][j];
+			}
+		}
+	}
+
 }
 
 /**
  * Parallel MMM
  */
-void *mmm_par(void *args) {
+void* mmm_par(void *args) {
 	// TODO - code to perform parallel MMM
+	thread_args *t_args = (thread_args*) args;
+	// row
+	for(int i = t_args->start_row; i <= t_args->end_row; i++){
+		// collumn
+			
+
+		for(int j = t_args->start_col; j < size; j++){
+			// if reached the exclusive stopping point
+			if(i == t_args->end_row && j == t_args->end_col){
+				break;
+			}
+			
+			for(int k = 0; k < size; k++){
+				PAR_MATRIX[i][j] += A[i][k] * B[k][j];
+			}
+		}
+	}
+
+	return NULL;
 }
 
 /**
@@ -61,5 +128,16 @@ void *mmm_par(void *args) {
 double mmm_verify() {
 	// TODO
 	// You may find the math.h function fabs() to be useful here (absolute value)
-	return -1;
+	double diff = 0;
+	double max = 0;
+	for(int i = 0; i < size; i++){
+		for(int j = 0; j < size; j++){
+			diff = fabs(SEQ_MATRIX[i][j] - PAR_MATRIX[i][j]);
+			if(diff > max){
+				max = diff;
+			}
+		}
+	}
+	
+	return max;
 }
